@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadConfig } from "./config/loader.js";
 import { OpenAICompatibleEmbeddingProvider } from "./embeddings/openai-compatible.js";
 import { OllamaEmbeddingProvider } from "./embeddings/ollama.js";

@@ -1,21 +1,83 @@
 {
-  "name": "pi-rag",
+  "name": "@raguets/pi-rag",
   "version": "0.1.0",
-  "description": "Read-only RAG extension for Pi with Qdrant ingestion tooling",
+  "description": "RAG extension for Pi with Qdrant and OpenAI-compatible embedding providers.",
+
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": ["dist", "scripts", "examples", "README.md"],
-  "keywords": ["pi-package", "rag", "qdrant"],
-  "pi": { "extensions": ["./dist/index.js"] },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+
+  "files": [
+    "dist/",
+    "scripts/",
+    "examples/",
+    "README.md",
+    "LICENSE"
+  ],
+
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "rag",
+    "retrieval-augmented-generation",
+    "qdrant",
+    "embeddings",
+    "vector-database",
+    "knowledge-base"
+  ],
+
+  "author": {
+    "name": "raguets"
+  },
+
+  "license": "MIT",
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raguets/pi-rag.git"
+  },
+
+  "homepage": "https://github.com/raguets/pi-rag#readme",
+
+  "bugs": {
+    "url": "https://github.com/raguets/pi-rag/issues"
+  },
+
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "check": "tsc -p tsconfig.json --noEmit"
+    "prepack": "npm run check && npm test && npm run build"
   },
-  "dependencies": { "@sinclair/typebox": "^0.34.41", "zod": "^4.1.5" },
-  "peerDependencies": { "@mariozechner/pi-coding-agent": "*" },
-  "devDependencies": { "@mariozechner/pi-coding-agent": "npm:@earendil-works/pi-coding-agent@^0.84.2", "@types/node": "^24.3.0", "typescript": "^5.9.2", "vitest": "^3.2.4" },
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.41",
+    "zod": "^4.1.5"
+  },
+
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "^0.84.3",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+
+  "engines": {
+    "node": ">=22.19.0"
+  },
+
+  "publishConfig": {
+    "access": "public"
+  }
 }
