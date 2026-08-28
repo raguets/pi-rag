@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "embeddingProviders": {
+    "local": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:11434/v1",
+      "model": "qwen3-embedding:0.6b",
+      "expectedDimensions": 1024,
+      "queryTemplate": "Instruct: Given a user question in French or English, retrieve relevant passages from enterprise documents that answer the question\nQuery: {{query}}"
+    }
+  },
+  "vectorStores": { "qdrant-local": { "type": "qdrant", "url": "http://localhost:6333", "apiKeyEnv": "QDRANT_API_KEY" } },
+  "knowledgeBases": {
+    "contract-library": {
+      "description": "Contrats et précédents contractuels",
+      "vectorStore": "qdrant-local", "embeddingProvider": "local", "collection": "contracts", "vectorName": "text",
+      "payload": { "content": "content", "title": "document_title", "source": "source_path", "page": "page", "section": "section", "metadata": ["customer", "contract_type", "year", "business_domain"] },
+      "filterableFields": ["customer", "contract_type", "year", "business_domain", "document_type"],
+      "search": { "topK": 8, "maxTopK": 30, "scoreThreshold": 0.45, "maxCharsPerChunk": 4000, "maxTotalChars": 20000 },
+      "ingestion": { "inputDirectory": "./data/contracts", "recursive": true, "chunking": { "strategy": "docling-hybrid", "maxTokens": 700 }, "embeddingText": { "includeTitle": true, "includeHeadings": true }, "batchSize": 32, "timeoutSeconds": 60, "maxRetries": 3, "distance": "cosine" }
+    }
+  }
+}
