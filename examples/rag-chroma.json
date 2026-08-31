@@ -22,7 +22,7 @@
       "description": "Contracts stored in ChromaDB",
       "vectorStore": "chroma-local",
       "embeddingProvider": "local",
-      "collection": "contracts",
+      "collection": "CHANGE ME UUID_DATABSE(for example provided by open-webui if you created a knowledge base from it)",
       "dimensions": 1024,
       "distance": "cosine",
       "payload": {
