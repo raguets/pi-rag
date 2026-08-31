@@ -24,7 +24,10 @@ export async function loadConfig(cwd = process.cwd(), explicit?: string): Promis
 function validateReferences(config: RagConfig): void {
   for (const [name, kb] of Object.entries(config.knowledgeBases)) {
     if (!config.embeddingProviders[kb.embeddingProvider]) throw new Error(`knowledgeBases.${name}: embeddingProvider inconnu`);
-    if (!config.vectorStores[kb.vectorStore]) throw new Error(`knowledgeBases.${name}: vectorStore inconnu`);
+    const store = config.vectorStores[kb.vectorStore];
+    if (!store) throw new Error(`knowledgeBases.${name}: vectorStore inconnu`);
+    if (store.type === "chroma" && !kb.dimensions) throw new Error(`knowledgeBases.${name}: dimensions est requis avec Chroma`);
+    if (store.type === "chroma" && kb.distance === "manhattan") throw new Error(`knowledgeBases.${name}: Chroma ne prend pas en charge la distance manhattan`);
     if (kb.search.topK > kb.search.maxTopK) throw new Error(`knowledgeBases.${name}: topK dépasse maxTopK`);
   }
 }

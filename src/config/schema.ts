@@ -6,9 +6,29 @@ export const providerSchema = z.object({
   apiKeyEnv: envName.optional(), expectedDimensions: z.number().int().positive().optional(),
   queryTemplate: z.string().default("{{query}}"), timeoutSeconds: z.number().positive().default(60), maxRetries: z.number().int().min(0).default(3)
 });
-export const storeSchema = z.object({ type: z.literal("qdrant"), url: z.string().url(), apiKeyEnv: envName.optional() });
+const qdrantStoreSchema = z.object({
+  type: z.literal("qdrant"), url: z.string().url(), apiKeyEnv: envName.optional()
+});
+const pgvectorStoreSchema = z.object({
+  type: z.literal("pgvector"),
+  connectionStringEnv: envName.optional(), host: z.string().min(1).optional(), port: z.number().int().positive().default(5432),
+  database: z.string().min(1).optional(), user: z.string().min(1).optional(), passwordEnv: envName.optional(),
+  ssl: z.boolean().default(false), schema: z.string().min(1).default("public"), idColumn: z.string().min(1).default("id"),
+  maxConnections: z.number().int().positive().default(10), idleTimeoutSeconds: z.number().positive().default(30)
+}).superRefine((value, context) => {
+  if (!value.connectionStringEnv && (!value.host || !value.database || !value.user)) {
+    context.addIssue({ code: "custom", message: "connectionStringEnv ou host/database/user est requis" });
+  }
+});
+const chromaStoreSchema = z.object({
+  type: z.literal("chroma"), url: z.string().url(), tenant: z.string().min(1).default("default_tenant"),
+  database: z.string().min(1).default("default_database"), apiKeyEnv: envName.optional(),
+  apiKeyHeader: z.string().min(1).default("x-chroma-token")
+});
+export const storeSchema = z.discriminatedUnion("type", [qdrantStoreSchema, pgvectorStoreSchema, chromaStoreSchema]);
 export const kbSchema = z.object({
   description: z.string().default(""), vectorStore: z.string(), embeddingProvider: z.string(), collection: z.string().min(1), vectorName: z.string().optional(),
+  dimensions: z.number().int().positive().optional(), distance: z.enum(["cosine", "dot", "euclid", "manhattan"]).default("cosine"),
   payload: z.object({ content: z.string().default("content"), title: z.string().optional(), source: z.string().optional(), page: z.string().optional(), section: z.string().optional(), metadata: z.array(z.string()).default([]) }).default({ content: "content", metadata: [] }),
   filterableFields: z.array(z.string()).default([]),
   search: z.object({ topK: z.number().int().positive().default(8), maxTopK: z.number().int().positive().default(30), scoreThreshold: z.number().optional(), maxCharsPerChunk: z.number().int().positive().default(4000), maxTotalChars: z.number().int().positive().default(20000) }).default({ topK: 8, maxTopK: 30, maxCharsPerChunk: 4000, maxTotalChars: 20000 }),

@@ -4,6 +4,8 @@ import { OpenAICompatibleEmbeddingProvider } from "./embeddings/openai-compatibl
 import { OllamaEmbeddingProvider } from "./embeddings/ollama.js";
 import type { EmbeddingProvider } from "./embeddings/embedding-provider.js";
 import { QdrantAdapter } from "./stores/qdrant/qdrant-adapter.js";
+import { PgvectorAdapter } from "./stores/pgvector/pgvector-adapter.js";
+import { ChromaAdapter } from "./stores/chroma/chroma-adapter.js";
 import type { VectorStoreAdapter } from "./stores/vector-store-adapter.js";
 import { RagService } from "./core/rag-service.js";
 import { ragSearchTool } from "./tools/rag-search.js";
@@ -16,7 +18,13 @@ export function createService(config: Awaited<ReturnType<typeof loadConfig>>): R
     providers[name] = cfg.type === "openai-compatible" ? new OpenAICompatibleEmbeddingProvider(cfg) : new OllamaEmbeddingProvider(cfg);
   }
   const stores: Record<string, VectorStoreAdapter> = {};
-  for (const [name, cfg] of Object.entries(config.vectorStores)) stores[name] = new QdrantAdapter(cfg);
+  for (const [name, cfg] of Object.entries(config.vectorStores)) {
+    switch (cfg.type) {
+      case "qdrant": stores[name] = new QdrantAdapter(cfg); break;
+      case "pgvector": stores[name] = new PgvectorAdapter(cfg); break;
+      case "chroma": stores[name] = new ChromaAdapter(cfg); break;
+    }
+  }
   return new RagService(config, providers, stores);
 }
 export default function (pi: ExtensionAPI) {

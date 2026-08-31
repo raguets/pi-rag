@@ -6,9 +6,10 @@ import type { VectorStoreAdapter } from "../vector-store-adapter.js";
 import { compileQdrantFilter } from "./filter-compiler.js";
 import { mapPayload } from "./payload-mapper.js";
 
+type QdrantConfig = Extract<VectorStoreConfig, { type: "qdrant" }>;
 export class QdrantAdapter implements VectorStoreAdapter {
   readonly type = "qdrant";
-  constructor(private readonly config: VectorStoreConfig, private readonly fetcher: typeof fetch = fetch) {}
+  constructor(private readonly config: QdrantConfig, private readonly fetcher: typeof fetch = fetch) {}
   private async request(path: string, init: RequestInit = {}): Promise<any> {
     try {
       const response = await this.fetcher(`${this.config.url.replace(/\/$/, "")}${path}`, { ...init, headers: { "content-type": "application/json", ...(this.config.apiKeyEnv ? { "api-key": secretFromEnv(this.config.apiKeyEnv)! } : {}), ...init.headers } });

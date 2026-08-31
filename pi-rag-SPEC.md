@@ -4,6 +4,8 @@
 **Version cible :** `0.1.0`  
 **Date :** 2026-08-27  
 **Cible :** extension pour le harness `pi.dev` + utilitaire d’ingestion Qdrant séparé  
+
+> **Évolution multi-backend :** l’extension de lecture prend désormais en charge Qdrant, PostgreSQL/pgvector et ChromaDB derrière le contrat commun `VectorStoreAdapter`. Le script Python d’ingestion décrit dans cette spécification reste volontairement limité à Qdrant. Les paramètres actuels et les exemples complets font foi dans `README.md` et `examples/rag*.json`.
 **Langages :** TypeScript pour l’extension Pi, Python pour l’ingestion
 
 ---

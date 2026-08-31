@@ -14,6 +14,7 @@
     "contract-library": {
       "description": "Contrats et précédents contractuels",
       "vectorStore": "qdrant-local", "embeddingProvider": "local", "collection": "contracts", "vectorName": "text",
+      "dimensions": 1024, "distance": "cosine",
       "payload": { "content": "content", "title": "document_title", "source": "source_path", "page": "page", "section": "section", "metadata": ["customer", "contract_type", "year", "business_domain"] },
       "filterableFields": ["customer", "contract_type", "year", "business_domain", "document_type"],
       "search": { "topK": 8, "maxTopK": 30, "scoreThreshold": 0.45, "maxCharsPerChunk": 4000, "maxTotalChars": 20000 },

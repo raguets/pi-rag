@@ -26,7 +26,7 @@ At ingestion time, the Python CLI:
 6. writes vectors and metadata to Qdrant;
 7. records an ingestion report.
 
-The ingestion CLI and the Pi extension use the same `rag.json` configuration so that the embedding model, vector store, collection, vector name, payload mapping, and search settings remain consistent.
+For Qdrant, the ingestion CLI and the Pi extension use the same `rag.json` configuration so that the embedding model, collection, vector name, payload mapping, and search settings remain consistent. The extension also reads pgvector and ChromaDB knowledge bases from this file, but the bundled Python CLI does not ingest into those backends.
 
 ---
 
@@ -34,21 +34,13 @@ The ingestion CLI and the Pi extension use the same `rag.json` configuration so 
 
 ### Vector stores
 
-**The current implementation supports Qdrant only.**
+The read-only Pi extension supports:
 
-The TypeScript code defines a generic `VectorStoreAdapter` interface, so the extension architecture is designed to support additional vector-store adapters in the future. However, the current configuration schema accepts only:
+- Qdrant through its REST API;
+- PostgreSQL with the pgvector extension through the PostgreSQL protocol;
+- ChromaDB through its v2 HTTP API.
 
-```json
-{
-  "type": "qdrant"
-}
-```
-
-and the repository currently contains only a Qdrant adapter.
-
-Therefore, the extension does **not currently support** PostgreSQL/pgvector, Milvus, Chroma, Elasticsearch/OpenSearch, Pinecone, Weaviate, FAISS, LanceDB, or other vector databases without adding a new adapter and extending the configuration schema.
-
-This limitation applies to the Pi extension itself, not only to the ingestion script.
+All three adapters share knowledge-base, embedding, payload mapping, filter allow-list, score threshold, and context-budget configuration. The Python ingestion CLI remains Qdrant-only by design; use your existing ingestion pipeline for pgvector or ChromaDB.
 
 ### Embedding providers
 
@@ -86,7 +78,7 @@ The token is read from an environment variable referenced by `apiKeyEnv`.
 
 - Node.js `>=22.19.0`
 - Pi
-- a reachable Qdrant instance
+- a reachable Qdrant, PostgreSQL/pgvector, or ChromaDB instance
 - an embedding endpoint compatible with OpenAI `/embeddings` or Ollama
 
 ### Ingestion CLI
@@ -334,6 +326,8 @@ A typical configuration looks like this:
       "embeddingProvider": "local",
       "collection": "contracts",
       "vectorName": "text",
+      "dimensions": 1024,
+      "distance": "cosine",
       "payload": {
         "content": "content",
         "title": "document_title",
@@ -451,7 +445,7 @@ The environment variable must be present in the environment from which Pi or the
 
 ## `vectorStores`
 
-The current implementation supports **Qdrant only**.
+Choose the adapter with `type`. Connection secrets are always referenced by environment-variable name.
 
 ```json
 "vectorStores": {
@@ -490,11 +484,46 @@ $env:QDRANT_API_KEY = "your-key"
 
 | Property | Required | Meaning |
 |---|---:|---|
-| `type` | yes | currently must be `qdrant` |
+| `type` | yes | `qdrant` |
 | `url` | yes | Qdrant REST endpoint |
 | `apiKeyEnv` | no | environment variable containing the Qdrant API key |
 
-Although the code exposes a generic `VectorStoreAdapter` interface, no other vector-store adapter is implemented in the current repository.
+### PostgreSQL / pgvector
+
+```json
+"vectorStores": {
+  "postgres": {
+    "type": "pgvector",
+    "connectionStringEnv": "PI_RAG_DATABASE_URL",
+    "ssl": true,
+    "schema": "rag",
+    "idColumn": "id",
+    "maxConnections": 10,
+    "idleTimeoutSeconds": 30
+  }
+}
+```
+
+Set `PI_RAG_DATABASE_URL=postgresql://user:password@host/database` outside JSON. Instead of `connectionStringEnv`, you may configure `host`, `port`, `database`, `user`, and `passwordEnv`. `schema` defaults to `public`, `idColumn` to `id`, and the vector column is selected by the knowledge base's `vectorName` (default `embedding`). The PostgreSQL role needs read-only access to the selected schema/table. The `vector` extension and a compatible vector index must already exist.
+
+### ChromaDB
+
+```json
+"vectorStores": {
+  "chroma": {
+    "type": "chroma",
+    "url": "http://localhost:8000",
+    "tenant": "default_tenant",
+    "database": "default_database",
+    "apiKeyEnv": "CHROMA_API_KEY",
+    "apiKeyHeader": "x-chroma-token"
+  }
+}
+```
+
+`tenant` and `database` use the shown defaults. Omit both authentication properties for a local unauthenticated server. For hosted or proxied deployments, `apiKeyHeader` lets you select the header expected by the service. Chroma's native `documents` value is used as chunk content; `payload` maps title/source/page/section and extra fields from Chroma metadata.
+
+Complete ready-to-copy configurations are provided in `examples/rag.json`, `examples/rag-pgvector.json`, and `examples/rag-chroma.json`.
 
 ## `knowledgeBases`
 
@@ -522,16 +551,18 @@ The key (`contract-library`) is the logical name used by `rag_search`, `rag_stat
 | `description` | no | Human-readable description exposed to the agent |
 | `vectorStore` | yes | Name of an entry in `vectorStores` |
 | `embeddingProvider` | yes | Name of an entry in `embeddingProviders` |
-| `collection` | yes | Qdrant collection |
-| `vectorName` | no | Named vector field in Qdrant |
-| `payload` | no | Maps generic RAG fields to Qdrant payload fields |
+| `collection` | yes | Qdrant/Chroma collection or pgvector table |
+| `vectorName` | no | Qdrant named vector or pgvector column (default `embedding` for pgvector; unused by Chroma) |
+| `dimensions` | Chroma: yes | Vector dimensions; also a fallback for unconstrained pgvector columns |
+| `distance` | no | `cosine` (default), `dot`, `euclid`, or `manhattan` |
+| `payload` | no | Maps generic RAG fields to payload, metadata, or SQL columns |
 | `filterableFields` | no | Fields allowed in search filters |
 | `search` | no | Retrieval limits and thresholds |
 | `ingestion` | no | Settings used by the Python Qdrant ingestion CLI |
 
 ## `payload`
 
-The payload mapping tells `pi-rag` which Qdrant payload properties contain the returned text and source information.
+The payload mapping tells `pi-rag` which backend fields contain the returned text and source information. With pgvector these are column names; with Qdrant they are payload keys; with Chroma all except content are metadata keys (content comes from the native document).
 
 ```json
 "payload": {
@@ -553,7 +584,7 @@ Properties:
 - `section`: optional section field.
 - `metadata`: additional payload fields returned with search hits.
 
-This mapping is especially important if `pi-rag` is querying a Qdrant collection created by another ingestion pipeline.
+This mapping is especially important when querying a collection or table created by another ingestion pipeline.
 
 ## `filterableFields`
 
@@ -574,7 +605,7 @@ Example agent filter:
 }
 ```
 
-Declaring a field as filterable also lets the ingestion script create appropriate Qdrant payload indexes.
+Filters are compiled into the backend-native syntax and values are parameterized for PostgreSQL. Declaring a field as filterable also lets the Qdrant ingestion script create appropriate payload indexes.
 
 ## `search`
 
@@ -1096,7 +1127,7 @@ Lists configured logical knowledge bases and their descriptions.
 
 ## `rag_search`
 
-Embeds a query, searches the configured Qdrant collection, and returns bounded chunks with source metadata.
+Embeds a query, searches the configured vector collection or table, and returns bounded chunks with source metadata.
 
 Main arguments include `query`, `knowledge_base`, `top_k`, and optional filters.
 
@@ -1184,7 +1215,7 @@ Example:
 
 # Multiple knowledge bases
 
-A single `rag.json` can declare several knowledge bases. They may use different Qdrant instances, collections, named vectors, embedding providers, search thresholds, payload mappings, and metadata filters.
+A single `rag.json` can declare several knowledge bases. They may mix Qdrant, pgvector, and ChromaDB stores, collections or tables, vector fields, embedding providers, search thresholds, payload mappings, and metadata filters.
 
 ```json
 {
@@ -1278,7 +1309,7 @@ This makes additional vector databases technically possible, but each backend st
 4. mapping of filters and metadata semantics;
 5. tests.
 
-At present, only Qdrant is implemented and accepted by the schema.
+Qdrant, pgvector, and ChromaDB are implemented. A new backend only needs another `VectorStoreAdapter`, its configuration-schema variant, factory registration, and native filter translation; the service, tools, embedding providers, result formatting, and budgets remain shared.
 
 ---
 

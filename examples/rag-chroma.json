@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "embeddingProviders": {
+    "local": {
+      "type": "ollama",
+      "baseUrl": "http://localhost:11434",
+      "model": "qwen3-embedding:0.6b",
+      "expectedDimensions": 1024,
+      "queryTemplate": "{{query}}"
+    }
+  },
+  "vectorStores": {
+    "chroma-local": {
+      "type": "chroma",
+      "url": "http://localhost:8000",
+      "tenant": "default_tenant",
+      "database": "default_database"
+    }
+  },
+  "knowledgeBases": {
+    "contract-library": {
+      "description": "Contracts stored in ChromaDB",
+      "vectorStore": "chroma-local",
+      "embeddingProvider": "local",
+      "collection": "contracts",
+      "dimensions": 1024,
+      "distance": "cosine",
+      "payload": {
+        "content": "content",
+        "title": "document_title",
+        "source": "source_path",
+        "page": "page",
+        "section": "section",
+        "metadata": ["customer", "contract_type", "year"]
+      },
+      "filterableFields": ["customer", "contract_type", "year"],
+      "search": {
+        "topK": 8,
+        "maxTopK": 30,
+        "scoreThreshold": 0.45,
+        "maxCharsPerChunk": 4000,
+        "maxTotalChars": 20000
+      }
+    }
+  }
+}

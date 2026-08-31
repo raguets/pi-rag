@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "embeddingProviders": {
+    "local": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:11434/v1",
+      "model": "qwen3-embedding:0.6b",
+      "expectedDimensions": 1024,
+      "queryTemplate": "Instruct: Retrieve passages that answer the question\nQuery: {{query}}"
+    }
+  },
+  "vectorStores": {
+    "postgres-local": {
+      "type": "pgvector",
+      "connectionStringEnv": "PI_RAG_DATABASE_URL",
+      "ssl": false,
+      "schema": "rag",
+      "idColumn": "id",
+      "maxConnections": 10,
+      "idleTimeoutSeconds": 30
+    }
+  },
+  "knowledgeBases": {
+    "contract-library": {
+      "description": "Contracts stored in PostgreSQL",
+      "vectorStore": "postgres-local",
+      "embeddingProvider": "local",
+      "collection": "contract_chunks",
+      "vectorName": "embedding",
+      "dimensions": 1024,
+      "distance": "cosine",
+      "payload": {
+        "content": "content",
+        "title": "document_title",
+        "source": "source_path",
+        "page": "page",
+        "section": "section",
+        "metadata": ["customer", "contract_type", "year"]
+      },
+      "filterableFields": ["customer", "contract_type", "year"],
+      "search": {
+        "topK": 8,
+        "maxTopK": 30,
+        "scoreThreshold": 0.45,
+        "maxCharsPerChunk": 4000,
+        "maxTotalChars": 20000
+      }
+    }
+  }
+}

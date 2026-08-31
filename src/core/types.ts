@@ -21,7 +21,7 @@ export interface PayloadConfig {
 }
 export interface KnowledgeBaseConfig {
   name: string; description: string; vectorStore: string; embeddingProvider: string;
-  collection: string; vectorName?: string; payload: PayloadConfig;
+  collection: string; vectorName?: string; dimensions?: number; distance: Distance; payload: PayloadConfig;
   filterableFields: string[]; search: SearchConfig; ingestion?: Record<string, unknown>;
 }
 export interface VectorIndexInfo { dimensions: number; distance: Distance; vectorName?: string }
