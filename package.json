@@ -1,6 +1,6 @@
 {
   "name": "@raguets/pi-rag",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "RAG extension for Pi with Qdrant, pgvector, ChromaDB and OpenAI-compatible embedding providers.",
   "type": "module",
   "main": "./dist/index.js",
