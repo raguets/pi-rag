@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import type { FilterExpression } from "../core/types.js";
 
 // Keep the tool schema free of $ref: some OpenAI-compatible providers reject

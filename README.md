@@ -123,7 +123,7 @@ pi install git:github.com/raguets/pi-rag
 A tagged version can be pinned explicitly:
 
 ```bash
-pi install git:github.com/raguets/pi-rag@v0.1.0
+pi install git:github.com/raguets/pi-rag@v1.0.0
 ```
 
 ## Local development installation
